@@ -5,7 +5,7 @@ vivian ou
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>朝聖之路行李計算機</title>
-    <!-- 引入 Tailwind CSS (負責美觀排版) -->
+    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Lucide 圖示庫 -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -17,6 +17,14 @@ vivian ou
             margin: 0; 
         }
         .category-icon { width: 18px; height: 18px; }
+        
+        /* 列印時的樣式調整，隱藏輸入框和按鈕，只印出清單 */
+        @media print {
+            body { background-color: white; }
+            #add-form, .delete-btn, header p, .print-hide, #items-container { display: none !important; }
+            .shadow-sm { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
+            #summary-section { margin-top: 0 !important; border: none !important; display: block !important; }
+        }
     </style>
 </head>
 <body class="bg-stone-50 text-stone-800 font-sans p-4 md:p-8 min-h-screen">
@@ -24,12 +32,12 @@ vivian ou
     <div class="max-w-3xl mx-auto space-y-6">
         
         <!-- 標題區 -->
-        <header class="text-center space-y-2">
+        <header class="text-center space-y-2 mt-4">
             <div class="flex justify-center items-center gap-2 text-amber-700">
                 <i data-lucide="package" class="w-8 h-8"></i>
                 <h1 class="text-2xl md:text-3xl font-bold">朝聖之路行李計算機</h1>
             </div>
-            <p class="text-stone-500 text-sm md:text-base">精準控制重量，讓你的朝聖之旅更輕鬆</p>
+            <p class="text-stone-500 text-sm md:text-base print-hide">精準控制重量，讓你的朝聖之旅更輕鬆</p>
         </header>
 
         <!-- 總重儀表板 -->
@@ -37,17 +45,17 @@ vivian ou
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col items-center justify-center">
                 <span class="text-stone-500 text-sm mb-1">背包總重</span>
                 <span id="backpack-total" class="text-3xl font-bold text-amber-600">0 g</span>
-                <span class="text-xs text-stone-400 mt-1">目標：建議為體重的 10%</span>
+                <span class="text-xs text-stone-400 mt-1 print-hide">目標：建議為體重的 10%</span>
             </div>
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col items-center justify-center">
                 <span class="text-stone-500 text-sm mb-1">身上穿著</span>
                 <span id="worn-total" class="text-3xl font-bold text-blue-600">0 g</span>
-                <span class="text-xs text-stone-400 mt-1">不計入背包負重</span>
+                <span class="text-xs text-stone-400 mt-1 print-hide">不計入背包負重</span>
             </div>
             <div class="bg-stone-800 text-white p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center">
                 <span class="text-stone-300 text-sm mb-1">全身總重</span>
                 <span id="grand-total" class="text-3xl font-bold">0 g</span>
-                <span class="text-xs text-stone-400 mt-1">背包 + 身上</span>
+                <span class="text-xs text-stone-400 mt-1 print-hide">背包 + 身上</span>
             </div>
         </div>
 
@@ -87,13 +95,50 @@ vivian ou
             </button>
         </form>
 
-        <!-- 物品清單展示區 (動態生成) -->
-        <div id="items-container" class="space-y-6">
-            <!-- 初始空狀態 -->
-            <div id="empty-state" class="text-center py-12 bg-white rounded-2xl border border-dashed border-stone-200 hidden">
-                <i data-lucide="weight" class="w-12 h-12 mx-auto text-stone-300 mb-3"></i>
-                <h3 class="text-stone-500 font-medium">還沒有新增任何物品</h3>
-                <p class="text-stone-400 text-sm mt-1">開始在上方輸入你的裝備吧！</p>
+        <!-- 切換顯示模式 (新增的選項按鈕) -->
+        <div class="flex justify-center print-hide">
+            <div class="inline-flex bg-stone-200 rounded-lg p-1">
+                <button id="tab-cards" onclick="switchTab('cards')" class="px-4 py-2 rounded-md text-sm font-medium bg-white shadow-sm text-stone-800 transition-all flex items-center gap-2">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i> 分類卡片
+                </button>
+                <button id="tab-table" onclick="switchTab('table')" class="px-4 py-2 rounded-md text-sm font-medium text-stone-500 hover:text-stone-700 transition-all flex items-center gap-2">
+                    <i data-lucide="list" class="w-4 h-4"></i> 清單總表
+                </button>
+            </div>
+        </div>
+
+        <!-- 物品分類卡片展示區 (動態生成) -->
+        <div id="items-container" class="space-y-6 print-hide">
+            <!-- 卡片會顯示在這裡 -->
+        </div>
+
+        <!-- ！！！這就是新增的總結統計表區塊！！！ -->
+        <div id="summary-section" class="mt-2 bg-white p-6 rounded-2xl shadow-sm border border-stone-200 hidden">
+            <div class="flex justify-between items-center border-b border-stone-200 pb-4 mb-4">
+                <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+                    <i data-lucide="list-checks" class="text-amber-600"></i>
+                    完整裝備清單總覽
+                </h2>
+                <!-- 列印按鈕 -->
+                <button onclick="window.print()" class="print-hide flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-md transition-colors">
+                    <i data-lucide="printer" class="w-4 h-4"></i> 列印清單
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-stone-600">
+                    <thead class="text-xs text-stone-500 uppercase bg-stone-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 rounded-tl-lg w-12">確認</th>
+                            <th scope="col" class="px-4 py-3">分類</th>
+                            <th scope="col" class="px-4 py-3">物品名稱</th>
+                            <th scope="col" class="px-4 py-3 text-right rounded-tr-lg">重量</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-table-body" class="divide-y divide-stone-100">
+                        <!-- 表格內容動態生成 -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -103,29 +148,52 @@ vivian ou
         // 初始化 Lucide 圖示
         lucide.createIcons();
 
-        // 定義分類資料
+        // 頁面切換邏輯 (新增)
+        let currentTab = 'cards';
+        function switchTab(tab) {
+            currentTab = tab;
+            const tabCards = document.getElementById('tab-cards');
+            const tabTable = document.getElementById('tab-table');
+            const itemsContainer = document.getElementById('items-container');
+            const summarySection = document.getElementById('summary-section');
+
+            if (tab === 'cards') {
+                tabCards.className = "px-4 py-2 rounded-md text-sm font-medium bg-white shadow-sm text-stone-800 transition-all flex items-center gap-2";
+                tabTable.className = "px-4 py-2 rounded-md text-sm font-medium text-stone-500 hover:text-stone-700 transition-all flex items-center gap-2";
+                itemsContainer.classList.remove('hidden');
+                summarySection.classList.add('hidden');
+            } else {
+                tabTable.className = "px-4 py-2 rounded-md text-sm font-medium bg-white shadow-sm text-stone-800 transition-all flex items-center gap-2";
+                tabCards.className = "px-4 py-2 rounded-md text-sm font-medium text-stone-500 hover:text-stone-700 transition-all flex items-center gap-2";
+                itemsContainer.classList.add('hidden');
+                summarySection.classList.remove('hidden');
+            }
+        }
+
+        // 定義分類資料 (確保順序，並修復邊框顏色設定)
+        const categoriesOrder = ['worn', 'toiletries', 'clothing', 'medical', 'electronics', 'gear', 'other'];
         const categories = {
-            'worn': { label: '身上穿的', type: 'worn', icon: 'shirt', colorClass: 'text-blue-500', bgClass: 'bg-blue-100' },
-            'toiletries': { label: '盥洗清潔用具', type: 'backpack', icon: 'droplet', colorClass: 'text-teal-500', bgClass: 'bg-teal-100' },
-            'clothing': { label: '睡覺與穿著', type: 'backpack', icon: 'shirt', colorClass: 'text-indigo-500', bgClass: 'bg-indigo-100' },
-            'medical': { label: '醫療保健品', type: 'backpack', icon: 'cross', colorClass: 'text-rose-500', bgClass: 'bg-rose-100' },
-            'electronics': { label: '3C用品', type: 'backpack', icon: 'smartphone', colorClass: 'text-purple-500', bgClass: 'bg-purple-100' },
-            'gear': { label: '行走裝備', type: 'backpack', icon: 'tent', colorClass: 'text-orange-500', bgClass: 'bg-orange-100' },
-            'other': { label: '其他', type: 'backpack', icon: 'more-horizontal', colorClass: 'text-gray-500', bgClass: 'bg-gray-100' }
+            'worn': { label: '身上穿的', type: 'worn', icon: 'shirt', colorClass: 'text-blue-500', bgClass: 'bg-blue-100', borderClass: 'border-blue-400' },
+            'toiletries': { label: '盥洗清潔用具', type: 'backpack', icon: 'droplet', colorClass: 'text-teal-500', bgClass: 'bg-teal-100', borderClass: 'border-teal-400' },
+            'clothing': { label: '睡覺與穿著', type: 'backpack', icon: 'shirt', colorClass: 'text-indigo-500', bgClass: 'bg-indigo-100', borderClass: 'border-indigo-400' },
+            'medical': { label: '醫療保健品', type: 'backpack', icon: 'cross', colorClass: 'text-rose-500', bgClass: 'bg-rose-100', borderClass: 'border-rose-400' },
+            'electronics': { label: '3C用品', type: 'backpack', icon: 'smartphone', colorClass: 'text-purple-500', bgClass: 'bg-purple-100', borderClass: 'border-purple-400' },
+            'gear': { label: '行走裝備', type: 'backpack', icon: 'tent', colorClass: 'text-orange-500', bgClass: 'bg-orange-100', borderClass: 'border-orange-400' },
+            'other': { label: '其他', type: 'backpack', icon: 'more-horizontal', colorClass: 'text-gray-500', bgClass: 'bg-gray-100', borderClass: 'border-gray-400' }
         };
 
-        // 狀態管理：從 localStorage 讀取或初始化
+        // 狀態管理：從 localStorage 讀取
         let items = JSON.parse(localStorage.getItem('camino_items_html')) || [];
 
         // 取得 DOM 元素
         const form = document.getElementById('add-form');
         const container = document.getElementById('items-container');
-        const emptyState = document.getElementById('empty-state');
         const bpTotalEl = document.getElementById('backpack-total');
         const wornTotalEl = document.getElementById('worn-total');
         const grandTotalEl = document.getElementById('grand-total');
+        const summaryTableBody = document.getElementById('summary-table-body');
 
-        // 格式化重量 (大於 1000g 顯示 kg)
+        // 格式化重量
         function formatWeight(g) {
             return g >= 1000 ? `${(g / 1000).toFixed(2)} kg` : `${g} g`;
         }
@@ -183,7 +251,6 @@ vivian ou
 
             // 更新儀表板
             bpTotalEl.textContent = formatWeight(bpWeight);
-            // 背包超重變紅色警告 (> 8kg)
             if(bpWeight > 8000) {
                 bpTotalEl.classList.remove('text-amber-600');
                 bpTotalEl.classList.add('text-red-500');
@@ -191,25 +258,37 @@ vivian ou
                 bpTotalEl.classList.remove('text-red-500');
                 bpTotalEl.classList.add('text-amber-600');
             }
-
             wornTotalEl.textContent = formatWeight(wornWeight);
             grandTotalEl.textContent = formatWeight(bpWeight + wornWeight);
 
-            // 2. 渲染清單
-            container.innerHTML = ''; // 清空目前列表
-            
+            // 2. 清空畫面準備重新繪製
+            container.innerHTML = ''; 
+            summaryTableBody.innerHTML = '';
+
             if (items.length === 0) {
-                container.appendChild(emptyState);
-                emptyState.classList.remove('hidden');
+                // 沒有物品時，顯示空狀態提示
+                container.innerHTML = `
+                    <div class="text-center py-12 bg-white rounded-2xl border border-dashed border-stone-200">
+                        <i data-lucide="weight" class="w-12 h-12 mx-auto text-stone-300 mb-3"></i>
+                        <h3 class="text-stone-500 font-medium">還沒有新增任何物品</h3>
+                        <p class="text-stone-400 text-sm mt-1">開始在上方輸入你的裝備吧！</p>
+                    </div>
+                `;
+                // 表格區塊也顯示空提示
+                summaryTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-stone-400">目前沒有裝備，請從上方新增。</td>
+                    </tr>
+                `;
             } else {
-                emptyState.classList.add('hidden');
-                
-                // 按分類生成區塊
-                Object.keys(categories).forEach(catId => {
+                // 有物品時，依照順序產生區塊與表格行
+                categoriesOrder.forEach(catId => {
                     const catItems = items.filter(i => i.categoryId === catId);
-                    if (catItems.length === 0) return; // 沒有物品的分類不顯示
+                    if (catItems.length === 0) return; // 沒有物品的分類跳過
 
                     const catDef = categories[catId];
+                    
+                    // === 生成上半部的分類卡片 ===
                     const bgHeader = catDef.type === 'worn' ? 'bg-blue-50/50 border-blue-100' : 'bg-stone-50/50 border-stone-100';
                     const typeText = catDef.type === 'worn' ? '身上物品' : '背包物品';
 
@@ -218,7 +297,7 @@ vivian ou
                             <span class="text-stone-700">${item.name}</span>
                             <div class="flex items-center gap-4">
                                 <span class="text-stone-600 font-medium font-mono bg-stone-100 px-2 py-1 rounded text-sm">${item.weight} g</span>
-                                <button onclick="deleteItem('${item.id}')" class="text-stone-300 hover:text-red-500 transition-colors p-1" title="刪除">
+                                <button onclick="deleteItem('${item.id}')" class="delete-btn text-stone-300 hover:text-red-500 transition-colors p-1" title="刪除">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -226,7 +305,7 @@ vivian ou
                     `).join('');
 
                     const catBlock = document.createElement('div');
-                    catBlock.className = 'bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden';
+                    catBlock.className = 'bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden mb-6';
                     catBlock.innerHTML = `
                         <div class="p-4 ${bgHeader} border-b flex justify-between items-center">
                             <div class="flex items-center gap-3">
@@ -248,14 +327,36 @@ vivian ou
                         </ul>
                     `;
                     container.appendChild(catBlock);
+
+                    // === 生成下半部的統計表內容 ===
+                    catItems.forEach((item, index) => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-stone-50 transition-colors";
+                        
+                        // Checkbox 讓印出來可以打勾
+                        const checkboxCell = `<td class="px-4 py-2"><input type="checkbox" class="w-4 h-4 text-amber-600 rounded border-stone-300 focus:ring-amber-500 cursor-pointer"></td>`;
+                        
+                        // 分類名稱 (合併儲存格，只在第一項顯示)
+                        const categoryCell = index === 0 
+                            ? `<td class="px-4 py-2 font-medium text-stone-700 border-l-2 ${catDef.borderClass}" rowspan="${catItems.length}">
+                                ${catDef.label}
+                               </td>` 
+                            : ''; 
+
+                        const nameCell = `<td class="px-4 py-2 text-stone-800">${item.name}</td>`;
+                        const weightCell = `<td class="px-4 py-2 text-right font-mono text-stone-600">${item.weight} g</td>`;
+
+                        tr.innerHTML = checkboxCell + categoryCell + nameCell + weightCell;
+                        summaryTableBody.appendChild(tr);
+                    });
                 });
             }
             
-            // 每次重新渲染 HTML 後，需要重新初始化 icon
+            // 重新初始化圖示
             lucide.createIcons();
         }
 
-        // 初始執行
+        // 執行畫面渲染
         renderApp();
     </script>
 </body>

@@ -1,0 +1,265 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>朝聖之路行李計算機</title>
+    <!-- 引入 Tailwind CSS (負責美觀排版) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide 圖示庫 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 隱藏數字輸入框的上下箭頭 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        .category-icon { width: 18px; height: 18px; }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800 font-sans p-4 md:p-8 min-h-screen">
+    
+    <div class="max-w-3xl mx-auto space-y-6">
+        
+        <!-- 標題區 -->
+        <header class="text-center space-y-2">
+            <div class="flex justify-center items-center gap-2 text-amber-700">
+                <i data-lucide="package" class="w-8 h-8"></i>
+                <h1 class="text-2xl md:text-3xl font-bold">朝聖之路行李計算機</h1>
+            </div>
+            <p class="text-stone-500 text-sm md:text-base">精準控制重量，讓你的朝聖之旅更輕鬆</p>
+        </header>
+
+        <!-- 總重儀表板 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col items-center justify-center">
+                <span class="text-stone-500 text-sm mb-1">背包總重</span>
+                <span id="backpack-total" class="text-3xl font-bold text-amber-600">0 g</span>
+                <span class="text-xs text-stone-400 mt-1">目標：建議為體重的 10%</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col items-center justify-center">
+                <span class="text-stone-500 text-sm mb-1">身上穿著</span>
+                <span id="worn-total" class="text-3xl font-bold text-blue-600">0 g</span>
+                <span class="text-xs text-stone-400 mt-1">不計入背包負重</span>
+            </div>
+            <div class="bg-stone-800 text-white p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center">
+                <span class="text-stone-300 text-sm mb-1">全身總重</span>
+                <span id="grand-total" class="text-3xl font-bold">0 g</span>
+                <span class="text-xs text-stone-400 mt-1">背包 + 身上</span>
+            </div>
+        </div>
+
+        <!-- 新增物品表單 -->
+        <form id="add-form" class="bg-white p-5 rounded-2xl shadow-sm border border-stone-100 flex flex-col md:flex-row gap-3 items-end">
+            <div class="w-full md:w-2/5">
+                <label class="block text-xs font-medium text-stone-500 mb-1">物品名稱</label>
+                <input type="text" id="item-name" required placeholder="例如：水泡貼、凡士林..."
+                    class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+            <div class="w-full md:w-1/4">
+                <label class="block text-xs font-medium text-stone-500 mb-1">重量 (公克)</label>
+                <div class="relative">
+                    <input type="number" id="item-weight" required min="1" placeholder="例如：50"
+                        class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 pr-8">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">g</span>
+                </div>
+            </div>
+            <div class="w-full md:w-1/3">
+                <label class="block text-xs font-medium text-stone-500 mb-1">分類</label>
+                <select id="item-category" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <optgroup label="背在背包">
+                        <option value="toiletries">盥洗清潔用具</option>
+                        <option value="clothing">睡覺與穿著</option>
+                        <option value="medical">醫療保健品</option>
+                        <option value="electronics">3C用品</option>
+                        <option value="gear">行走裝備</option>
+                        <option value="other">其他</option>
+                    </optgroup>
+                    <optgroup label="穿在身上">
+                        <option value="worn">身上穿的</option>
+                    </optgroup>
+                </select>
+            </div>
+            <button type="submit" class="w-full md:w-auto p-2.5 px-6 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors whitespace-nowrap">
+                <i data-lucide="plus" class="w-5 h-5"></i> 新增
+            </button>
+        </form>
+
+        <!-- 物品清單展示區 (動態生成) -->
+        <div id="items-container" class="space-y-6">
+            <!-- 初始空狀態 -->
+            <div id="empty-state" class="text-center py-12 bg-white rounded-2xl border border-dashed border-stone-200 hidden">
+                <i data-lucide="weight" class="w-12 h-12 mx-auto text-stone-300 mb-3"></i>
+                <h3 class="text-stone-500 font-medium">還沒有新增任何物品</h3>
+                <p class="text-stone-400 text-sm mt-1">開始在上方輸入你的裝備吧！</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 初始化 Lucide 圖示
+        lucide.createIcons();
+
+        // 定義分類資料
+        const categories = {
+            'worn': { label: '身上穿的', type: 'worn', icon: 'shirt', colorClass: 'text-blue-500', bgClass: 'bg-blue-100' },
+            'toiletries': { label: '盥洗清潔用具', type: 'backpack', icon: 'droplet', colorClass: 'text-teal-500', bgClass: 'bg-teal-100' },
+            'clothing': { label: '睡覺與穿著', type: 'backpack', icon: 'shirt', colorClass: 'text-indigo-500', bgClass: 'bg-indigo-100' },
+            'medical': { label: '醫療保健品', type: 'backpack', icon: 'cross', colorClass: 'text-rose-500', bgClass: 'bg-rose-100' },
+            'electronics': { label: '3C用品', type: 'backpack', icon: 'smartphone', colorClass: 'text-purple-500', bgClass: 'bg-purple-100' },
+            'gear': { label: '行走裝備', type: 'backpack', icon: 'tent', colorClass: 'text-orange-500', bgClass: 'bg-orange-100' },
+            'other': { label: '其他', type: 'backpack', icon: 'more-horizontal', colorClass: 'text-gray-500', bgClass: 'bg-gray-100' }
+        };
+
+        // 狀態管理：從 localStorage 讀取或初始化
+        let items = JSON.parse(localStorage.getItem('camino_items_html')) || [];
+
+        // 取得 DOM 元素
+        const form = document.getElementById('add-form');
+        const container = document.getElementById('items-container');
+        const emptyState = document.getElementById('empty-state');
+        const bpTotalEl = document.getElementById('backpack-total');
+        const wornTotalEl = document.getElementById('worn-total');
+        const grandTotalEl = document.getElementById('grand-total');
+
+        // 格式化重量 (大於 1000g 顯示 kg)
+        function formatWeight(g) {
+            return g >= 1000 ? `${(g / 1000).toFixed(2)} kg` : `${g} g`;
+        }
+
+        // 儲存資料並重新渲染畫面
+        function saveDataAndRender() {
+            localStorage.setItem('camino_items_html', JSON.stringify(items));
+            renderApp();
+        }
+
+        // 新增物品
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('item-name');
+            const weightInput = document.getElementById('item-weight');
+            const categorySelect = document.getElementById('item-category');
+
+            const newItem = {
+                id: Date.now().toString(),
+                name: nameInput.value.trim(),
+                weight: parseInt(weightInput.value),
+                categoryId: categorySelect.value
+            };
+
+            items.push(newItem);
+            nameInput.value = '';
+            weightInput.value = '';
+            saveDataAndRender();
+        });
+
+        // 刪除物品
+        window.deleteItem = function(id) {
+            items = items.filter(item => item.id !== id);
+            saveDataAndRender();
+        };
+
+        // 渲染主函數
+        function renderApp() {
+            // 1. 計算總重
+            let bpWeight = 0;
+            let wornWeight = 0;
+            let catTotals = {};
+            Object.keys(categories).forEach(k => catTotals[k] = 0);
+
+            items.forEach(item => {
+                if (categories[item.categoryId]) {
+                    catTotals[item.categoryId] += item.weight;
+                    if (categories[item.categoryId].type === 'backpack') {
+                        bpWeight += item.weight;
+                    } else {
+                        wornWeight += item.weight;
+                    }
+                }
+            });
+
+            // 更新儀表板
+            bpTotalEl.textContent = formatWeight(bpWeight);
+            // 背包超重變紅色警告 (> 8kg)
+            if(bpWeight > 8000) {
+                bpTotalEl.classList.remove('text-amber-600');
+                bpTotalEl.classList.add('text-red-500');
+            } else {
+                bpTotalEl.classList.remove('text-red-500');
+                bpTotalEl.classList.add('text-amber-600');
+            }
+
+            wornTotalEl.textContent = formatWeight(wornWeight);
+            grandTotalEl.textContent = formatWeight(bpWeight + wornWeight);
+
+            // 2. 渲染清單
+            container.innerHTML = ''; // 清空目前列表
+            
+            if (items.length === 0) {
+                container.appendChild(emptyState);
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                
+                // 按分類生成區塊
+                Object.keys(categories).forEach(catId => {
+                    const catItems = items.filter(i => i.categoryId === catId);
+                    if (catItems.length === 0) return; // 沒有物品的分類不顯示
+
+                    const catDef = categories[catId];
+                    const bgHeader = catDef.type === 'worn' ? 'bg-blue-50/50 border-blue-100' : 'bg-stone-50/50 border-stone-100';
+                    const typeText = catDef.type === 'worn' ? '身上物品' : '背包物品';
+
+                    let itemsHtml = catItems.map(item => `
+                        <li class="p-3 px-4 flex justify-between items-center hover:bg-stone-50/50 transition-colors group">
+                            <span class="text-stone-700">${item.name}</span>
+                            <div class="flex items-center gap-4">
+                                <span class="text-stone-600 font-medium font-mono bg-stone-100 px-2 py-1 rounded text-sm">${item.weight} g</span>
+                                <button onclick="deleteItem('${item.id}')" class="text-stone-300 hover:text-red-500 transition-colors p-1" title="刪除">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </li>
+                    `).join('');
+
+                    const catBlock = document.createElement('div');
+                    catBlock.className = 'bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden';
+                    catBlock.innerHTML = `
+                        <div class="p-4 ${bgHeader} border-b flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 rounded-lg ${catDef.bgClass} ${catDef.colorClass}">
+                                    <i data-lucide="${catDef.icon}" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-stone-800">${catDef.label}</h3>
+                                    <p class="text-xs text-stone-500">${typeText}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-bold text-stone-700">${formatWeight(catTotals[catId])}</div>
+                                <div class="text-xs text-stone-400">${catItems.length} 項物品</div>
+                            </div>
+                        </div>
+                        <ul class="divide-y divide-stone-50">
+                            ${itemsHtml}
+                        </ul>
+                    `;
+                    container.appendChild(catBlock);
+                });
+            }
+            
+            // 每次重新渲染 HTML 後，需要重新初始化 icon
+            lucide.createIcons();
+        }
+
+        // 初始執行
+        renderApp();
+    </script>
+</body>
+</html>
+
+
+```
